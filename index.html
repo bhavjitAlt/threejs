@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<!-- 
+    This is a demonstration of loading animated glTF files in Three.js. Drag
+    the cursor to orbit and hold `Shift` and drag to pan.
+
+    "Animated Tyrannosaurus Rex Dinosaur Running Loop" (https://skfb.ly/o9nF6)
+    by LasquetiSpice is licensed under Creative Commons Attribution
+    (http://creativecommons.org/licenses/by/4.0/).
+ -->
+
+<head>
+    <meta charset="utf-8">
+    <title>Three.js Demo</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdn.jsdelivr.net/gh/bhavjitAlt/threejs/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139.2/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/bhavjitAlt/threejs/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/bhavjitAlt/threejs/trex_glb1.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/bhavjitAlt/threejs/trex_glb2.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+    <script type="">
+    {
+        const trex_glb = (Uint8Array.from(atob(trex_glb1 + trex_glb2),c => c.charCodeAt(0))).buffer;
+
+        const clock = new THREE.Clock();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight,
+            1, 2000);
+        camera.position.set(100, 200, 300);
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xa0a0a0);
+        scene.fog = new THREE.Fog(0xa0a0a0, 200, 1000);
+
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff);
+        dirLight.position.set(0, 200, 100);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 180;
+        dirLight.shadow.camera.bottom = -100;
+        dirLight.shadow.camera.left = -120;
+        dirLight.shadow.camera.right = 120;
+        scene.add(dirLight);
+
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshPhongMaterial({
+            color: 0x999999,
+            depthWrite: false
+        }));
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+
+        let mixer;
+        const loader = new THREE.GLTFLoader();
+        loader.parse(trex_glb, undefined, function(gltf) {
+            gltf.scene.scale.setScalar(25);
+            gltf.scene.traverse(function(child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            mixer = new THREE.AnimationMixer(gltf.scene);
+            mixer.clipAction(gltf.animations[0]).play();
+            scene.add(gltf.scene);
+        });
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 100, 0);
+        controls.update();
+        
+        stats = new Stats();
+        document.body.appendChild(stats.dom);
+
+        if (window.parent.requestID) cancelAnimationFrame(window.parent.requestID);
+        function animate() {
+            if (window.parent) window.parent.requestID = requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+            renderer.render(scene, camera);
+            stats.update();
+        };
+        animate();
+    }
+    </script>
+</body>
+
+</html>
